@@ -6,25 +6,6 @@
 #include <stdint.h>
 #include "bitmaps.h"
 
-const uint8_t V_ACC_PIN = 8; // PB2
-const uint8_t CLK_PIN = 9; // PB1
-const uint8_t V_DIS_PIN = 10; // PB0
-const uint8_t X_OUT_PIN = 7; // PA7
-const uint8_t Y_OUT_PIN = 6; // PA6
-const uint8_t Z_OUT_PIN = 5; // PA5
-const uint8_t RST_PIN = 4; // PA4
-const uint8_t DIN_PIN = 3; // PA3
-const uint8_t CE_PIN = 2; // PA2
-const uint8_t DC_PIN = 1; // PA1
-const uint8_t LED_PIN = 0; // PA0
-
-// Input & output pins directly controlled in this scope
-const uint8_t OUTPUT_PINS[] = {V_ACC_PIN, V_DIS_PIN, LED_PIN};
-const uint8_t INPUT_PINS[] = {X_OUT_PIN, Y_OUT_PIN, Z_OUT_PIN};
-
-volatile bool watchdogBarked = false;
-Nokia_LCD lcd(CLK_PIN /* CLK */, DIN_PIN /* DIN */, DC_PIN /* DC */, CE_PIN /* CE */, RST_PIN /* RST */);
-
 enum WatchDogTimeout {
   WDT_16ms = 0,
   WDT_32ms,
@@ -43,19 +24,54 @@ enum RunningState {
   // Screen is off
   // Slow check of accelerometer for changes
   DEEP_SLEEP,
-  // Ball facing down for short amount of time
-  // Screen is off
-  // Fast check of accelerometer for changes
-  WAIT_TO_SLEEP,
   // Ball facing up
   // Screen is on - Waiting display
   // Fast check of accelerometer for changes
-  WAIT_TO_PLAY,
+  IDLE_SCREEN,
   // Ball facing up
   // Screen is on - Game views
   // Faster check of accelerometer for changes
   PLAYING,
 };
+
+const uint8_t V_ACC_PIN = 8; // PB2
+const uint8_t CLK_PIN = 9; // PB1
+const uint8_t V_DIS_PIN = 10; // PB0
+const uint8_t X_OUT_PIN = A7; // PA7
+const uint8_t Y_OUT_PIN = A6; // PA6
+const uint8_t Z_OUT_PIN = A5; // PA5
+const uint8_t RST_PIN = 4; // PA4
+const uint8_t DIN_PIN = 3; // PA3
+const uint8_t CE_PIN = 2; // PA2
+const uint8_t DC_PIN = 1; // PA1
+const uint8_t LED_PIN = 0; // PA0
+
+// Input & output pins directly controlled in this scope
+const uint8_t OUTPUT_PINS[] = {V_ACC_PIN, V_DIS_PIN, LED_PIN};
+const uint8_t INPUT_PINS[] = {X_OUT_PIN, Y_OUT_PIN, Z_OUT_PIN};
+
+// The experimentally determined Z-axis value over which we consider
+// ourselves to be facing up
+const unsigned int MIN_FACING_UP_THRESHOLD = 520;
+const uint8_t TIMES_TO_CHECK_FOR_MOVEMENT = 20;
+// The minimum acceleration delta (on X,Y,Z axes) to be considered as a movement
+// The smaller the number the easier a "movement" will be registered
+const unsigned int MOVEMENT_ACCELERATION_THRESHOLD = 30; // Experimentally determined
+// The amount of detected movements needed to start a game
+const uint8_t AMOUNT_OF_MOVEMENTS_THRESHOLD = 5;
+// How much to wait before using the accelerometer in milliseconds
+const unsigned long ACCELEROMETER_BOOTUP_TIME = 15;
+// Sleep duration while in DEEP_SLEEP mode
+const unsigned long DEEP_SLEEP_INTERVAL = 2000;
+// Sleep duration while in IDLE_SCREEN mode
+const unsigned long IDLE_SCREEN_INTERVAL = 500;
+// Sleep duration while in PLAYING mode
+const unsigned long PLAYING_INTERVAL = 15000;
+
+volatile bool watchdogBarked = false;
+
+Nokia_LCD lcd(CLK_PIN /* CLK */, DIN_PIN /* DIN */, DC_PIN /* DC */, CE_PIN /* CE */, RST_PIN /* RST */);
+RunningState currentState = DEEP_SLEEP;
 
 /**
   Watchdog interrupt routine to be triggered when watchdog times out.
@@ -80,7 +96,7 @@ void triggerWatchDogIn(WatchDogTimeout wdt) {
   WDTCSR |= (1 << WDCE) | (1 << WDE); // Start timed sequence
   WDTCSR = timeoutVal;
   WDTCSR |= _BV(WDIE);
-  wdt_reset();  // Pat the dog
+  wdt_reset(); // Pat the dog
 }
 
 /**
@@ -145,23 +161,32 @@ void turnBacklightOff() {
 }
 
 void turnAccelerometerOn() {
+  // Accelerometer needs some few milliseconds to get ready
+  // so we need to make sure that we give it this time
   digitalWrite(V_ACC_PIN, HIGH);
+  stayInDeepSleepFor(ACCELEROMETER_BOOTUP_TIME, WDT_16ms); // Give the accelerometer some time to boot
+  enableADC();
 }
 
 void turnAccelerometerOff() {
+  disableADC();
   digitalWrite(V_ACC_PIN, LOW);
 }
 
-unsigned int getAccelerometerX() {
+unsigned int getAccelerationX() {
   return analogRead(X_OUT_PIN);
 }
 
-unsigned int getAccelerometerY() {
+unsigned int getAccelerationY() {
   return analogRead(Y_OUT_PIN);
 }
 
-unsigned int getAccelerometerZ() {
+unsigned int getAccelerationZ() {
   return analogRead(Z_OUT_PIN);
+}
+
+unsigned int getAccelerationXYZ() {
+  return getAccelerationX() + getAccelerationY() + getAccelerationZ();
 }
 
 void disableADC() {
@@ -172,34 +197,98 @@ void enableADC() {
   ADCSRA |= (1 << ADEN);
 }
 
+bool isFacingUp() {
+  return getAccelerationZ() >= MIN_FACING_UP_THRESHOLD;
+}
+
 /*** Helper functions ***/
 
 void setup() {
+  // Set pin directions
   for (auto pin : INPUT_PINS) {
     pinMode(pin, INPUT);
   }
   for (auto pin : OUTPUT_PINS) {
     pinMode(pin, OUTPUT);
   }
-  turnScreenOn();
-  turnAccelerometerOn();
-  lcd.begin();
-  lcd.setContrast(60);
-  lcd.clear(); // Clear the screen
+
+  // Disable digital pin buffers for analog pins
+  // to save some power, since we are doing only analog readings
+  bitSet(DIDR0, ADC5D); // Disable digital buffer on A5
+  bitSet(DIDR0, ADC6D); // Disable digital buffer on A6
+  bitSet(DIDR0, ADC7D); // Disable digital buffer on A7
+
+  turnBacklightOff();
 }
 
 void loop() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("X: ");
-  enableADC();
-  lcd.println(getAccelerometerX());
-  lcd.print("Y: ");
-  lcd.println(getAccelerometerY());
-  lcd.print("Z: ");
-  lcd.println(getAccelerometerZ());
-  disableADC();
-  stayInDeepSleepFor(400, WDT_128ms);
+  switch (currentState) {
+    case DEEP_SLEEP:
+      {
+        turnAccelerometerOn();
+        // Store whether it is facing up in a variable
+        // so we can turn the accelerometer off right away
+        // before printing to the screen or sleeping more
+        bool facingUp = isFacingUp();
+        turnAccelerometerOff();
+        if (facingUp) {
+          currentState = IDLE_SCREEN;
+          turnScreenOn();
+          lcd.begin();
+          lcd.setContrast(60);
+          lcd.clear(); // Clear the screen
+          lcd.println("Ask your question and shake to get your answer");
+        } else {
+          turnScreenOff();
+          stayInDeepSleepFor(DEEP_SLEEP_INTERVAL, WDT_1sec);
+        }
+      }
+      break;
+    case IDLE_SCREEN:
+      {
+        bool hasMovedEnough = false;
+        unsigned int movements = 0;
+        turnAccelerometerOn();
+        int previousAcceleration = getAccelerationXYZ(); // Some initial measurement
+        turnAccelerometerOff();
+
+        // Check for movements
+        for (uint8_t i = 0; i < TIMES_TO_CHECK_FOR_MOVEMENT && !hasMovedEnough; i++) {
+          stayInDeepSleepFor(IDLE_SCREEN_INTERVAL, WDT_64ms);
+
+          turnAccelerometerOn();
+          int currentAcceleration = getAccelerationXYZ();
+          turnAccelerometerOff();
+          int accelerationDelta = currentAcceleration - previousAcceleration;
+          previousAcceleration = currentAcceleration;
+
+          // Determine whether there was a movement
+          if (abs(accelerationDelta) >= MOVEMENT_ACCELERATION_THRESHOLD) {
+            if (++movements >= AMOUNT_OF_MOVEMENTS_THRESHOLD) {
+              hasMovedEnough = true;
+            }
+            // Print out visual feedback/affirmation for the user's movement
+            lcd.print("*");
+          }
+        }
+
+        // Determine the state transition
+        currentState = hasMovedEnough ? PLAYING : DEEP_SLEEP;
+      }
+      break;
+    case PLAYING:
+      {
+        lcd.clear();
+        // Display a very helpful message to the user
+        lcd.println("A helpful tip to the user");
+        stayInDeepSleepFor(PLAYING_INTERVAL, WDT_8sec);
+
+        currentState = IDLE_SCREEN;
+      }
+      break;
+    default:
+      break;
+  }
 
   //  lcd.draw(platis_solutions_logo, sizeof(platis_solutions_logo) / sizeof(unsigned char));
   //  stayInDeepSleepFor(20000, WDT_8sec);

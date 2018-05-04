@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 #include <stdint.h>
 #include "bitmaps.h"
+#include "tips.h"
 
 enum WatchDogTimeout {
   WDT_16ms = 0,
@@ -52,11 +53,10 @@ const uint8_t INPUT_PINS[] = {X_OUT_PIN, Y_OUT_PIN, Z_OUT_PIN};
 
 // The experimentally determined Z-axis value over which we consider
 // ourselves to be facing up
-const unsigned int MIN_FACING_UP_THRESHOLD = 520;
-const uint8_t TIMES_TO_CHECK_FOR_MOVEMENT = 20;
+const unsigned int MIN_FACING_UP_THRESHOLD = 500;
 // The minimum acceleration delta (on X,Y,Z axes) to be considered as a movement
 // The smaller the number the easier a "movement" will be registered
-const unsigned int MOVEMENT_ACCELERATION_THRESHOLD = 30; // Experimentally determined
+const unsigned int MOVEMENT_ACCELERATION_THRESHOLD = 25; // Experimentally determined
 // The amount of detected movements needed to start a game
 const uint8_t AMOUNT_OF_MOVEMENTS_THRESHOLD = 5;
 // How much to wait before using the accelerometer in milliseconds
@@ -66,12 +66,15 @@ const unsigned long DEEP_SLEEP_INTERVAL = 2000;
 // Sleep duration while in IDLE_SCREEN mode
 const unsigned long IDLE_SCREEN_INTERVAL = 500;
 // Sleep duration while in PLAYING mode
-const unsigned long PLAYING_INTERVAL = 15000;
+const unsigned long PLAYING_INTERVAL = 5000;
+const uint8_t TIPS_LENGTH = 50; // The tips' max length in characters
 
 volatile bool watchdogBarked = false;
 
 Nokia_LCD lcd(CLK_PIN /* CLK */, DIN_PIN /* DIN */, DC_PIN /* DC */, CE_PIN /* CE */, RST_PIN /* RST */);
 RunningState currentState = DEEP_SLEEP;
+unsigned int amountOfMovements = 0;
+int previousAcceleration = 0;
 
 /**
   Watchdog interrupt routine to be triggered when watchdog times out.
@@ -232,12 +235,19 @@ void loop() {
         bool facingUp = isFacingUp();
         turnAccelerometerOff();
         if (facingUp) {
+          // Prepare the transition to the IDLE_SCREEN state
           currentState = IDLE_SCREEN;
+          // Prepare the screen
           turnScreenOn();
           lcd.begin();
           lcd.setContrast(60);
           lcd.clear(); // Clear the screen
           lcd.println("Ask your question and shake to get your answer");
+          // Initialize the movement related variables
+          amountOfMovements = 0;
+          turnAccelerometerOn();
+          previousAcceleration = getAccelerationXYZ(); // Get some initial measurement
+          turnAccelerometerOff();
         } else {
           turnScreenOff();
           stayInDeepSleepFor(DEEP_SLEEP_INTERVAL, WDT_1sec);
@@ -246,44 +256,52 @@ void loop() {
       break;
     case IDLE_SCREEN:
       {
-        bool hasMovedEnough = false;
-        unsigned int movements = 0;
-        turnAccelerometerOn();
-        int previousAcceleration = getAccelerationXYZ(); // Some initial measurement
-        turnAccelerometerOff();
-
+        stayInDeepSleepFor(IDLE_SCREEN_INTERVAL, WDT_64ms);
         // Check for movements
-        for (uint8_t i = 0; i < TIMES_TO_CHECK_FOR_MOVEMENT && !hasMovedEnough; i++) {
-          stayInDeepSleepFor(IDLE_SCREEN_INTERVAL, WDT_64ms);
+        // Calculate the current delta in acceleration
+        turnAccelerometerOn();
+        int currentAcceleration = getAccelerationXYZ();
+        turnAccelerometerOff();
+        int accelerationDelta = currentAcceleration - previousAcceleration;
+        previousAcceleration = currentAcceleration;
 
+        // Determine whether the current difference in acceleration constitutes a movement
+        // and whether we need to transist to a different state
+        if (abs(accelerationDelta) >= MOVEMENT_ACCELERATION_THRESHOLD) {
+          if (++amountOfMovements >= AMOUNT_OF_MOVEMENTS_THRESHOLD) {
+            currentState = PLAYING;
+          }
+          // Print out visual feedback/affirmation for the user's movement
+          lcd.print("*");
+        } else {
+          // If there hasn't been any movement, check to see if we are facing down therefore
+          // should go to sleep
           turnAccelerometerOn();
-          int currentAcceleration = getAccelerationXYZ();
+          bool facingUp = isFacingUp();
           turnAccelerometerOff();
-          int accelerationDelta = currentAcceleration - previousAcceleration;
-          previousAcceleration = currentAcceleration;
-
-          // Determine whether there was a movement
-          if (abs(accelerationDelta) >= MOVEMENT_ACCELERATION_THRESHOLD) {
-            if (++movements >= AMOUNT_OF_MOVEMENTS_THRESHOLD) {
-              hasMovedEnough = true;
-            }
-            // Print out visual feedback/affirmation for the user's movement
-            lcd.print("*");
+          if (!facingUp) {
+            currentState = DEEP_SLEEP;
           }
         }
-
-        // Determine the state transition
-        currentState = hasMovedEnough ? PLAYING : DEEP_SLEEP;
       }
       break;
     case PLAYING:
       {
         lcd.clear();
         // Display a very helpful message to the user
-        lcd.println("A helpful tip to the user");
-        stayInDeepSleepFor(PLAYING_INTERVAL, WDT_8sec);
+        // Randomly select a helpful tip
+        randomSeed(previousAcceleration + millis());
+        uint8_t randomTip = random(0, AMOUNT_OF_TIPS);
 
-        currentState = IDLE_SCREEN;
+        // Read the tip from flash memory
+        char tipsBuffer[TIPS_LENGTH];
+        strcpy_P(tipsBuffer, (char*)pgm_read_word(&(TIPS[randomTip])));
+        // Place a null terminator in the end just to be safe
+        tipsBuffer[TIPS_LENGTH - 1] = '\0';
+        lcd.print(tipsBuffer);
+        
+        stayInDeepSleepFor(PLAYING_INTERVAL, WDT_1sec);
+        currentState = DEEP_SLEEP;
       }
       break;
     default:

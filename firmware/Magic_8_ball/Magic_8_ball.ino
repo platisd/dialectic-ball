@@ -68,6 +68,7 @@ const unsigned long IDLE_SCREEN_INTERVAL = 500;
 // Sleep duration while in PLAYING mode
 const unsigned long PLAYING_INTERVAL = 5000;
 const uint8_t TIPS_LENGTH = 50; // The tips' max length in characters
+const unsigned long EIGHTBALL_SLEEP = 1000; // How long to display the 8ball logo in milliseconds
 
 volatile bool watchdogBarked = false;
 
@@ -75,6 +76,7 @@ Nokia_LCD lcd(CLK_PIN /* CLK */, DIN_PIN /* DIN */, DC_PIN /* DC */, CE_PIN /* C
 RunningState currentState = DEEP_SLEEP;
 unsigned int amountOfMovements = 0;
 int previousAcceleration = 0;
+bool justWokeUp = true; // A flag to indicate whether the screen is turning on just now
 
 /**
   Watchdog interrupt routine to be triggered when watchdog times out.
@@ -126,7 +128,7 @@ void goToSleep() {
    @param sleepDuration     how long to stay in deep sleep in milliseconds
    @param timeoutInterval   the watchdog timeout interval
 */
-void stayInDeepSleepFor(unsigned long sleepDuration, WatchDogTimeout timeoutInterval) {
+void stayInDeepSleepFor(unsigned long sleepDuration, WatchDogTimeout timeoutInterval = WDT_16ms) {
   unsigned long sleepTime = 0;
 
   // Start by triggering the watchdog to wake us up every `timeoutInterval`
@@ -242,6 +244,13 @@ void loop() {
           lcd.begin();
           lcd.setContrast(60);
           lcd.clear(); // Clear the screen
+          // If we just woke up, display the 8-ball logo to the user
+          if (justWokeUp) {
+            justWokeUp = false;
+            lcd.draw(eightball, sizeof(eightball) / sizeof(unsigned char));
+            stayInDeepSleepFor(EIGHTBALL_SLEEP, WDT_1sec);
+            lcd.clear();
+          }
           lcd.println("Ask your question and shake to get your answer");
           // Initialize the movement related variables
           amountOfMovements = 0;
@@ -251,6 +260,7 @@ void loop() {
         } else {
           turnScreenOff();
           stayInDeepSleepFor(DEEP_SLEEP_INTERVAL, WDT_1sec);
+          justWokeUp = true;
         }
       }
       break;
@@ -299,7 +309,7 @@ void loop() {
         // Place a null terminator in the end just to be safe
         tipsBuffer[TIPS_LENGTH - 1] = '\0';
         lcd.print(tipsBuffer);
-        
+
         stayInDeepSleepFor(PLAYING_INTERVAL, WDT_1sec);
         currentState = DEEP_SLEEP;
       }
@@ -307,13 +317,4 @@ void loop() {
     default:
       break;
   }
-
-  //  lcd.draw(platis_solutions_logo, sizeof(platis_solutions_logo) / sizeof(unsigned char));
-  //  stayInDeepSleepFor(20000, WDT_8sec);
-  //  lcd.draw(hi_im_dimitris, sizeof(hi_im_dimitris) / sizeof(unsigned char));
-  //  stayInDeepSleepFor(30000, WDT_8sec);
-  //  lcd.draw(aptiv_engineer, sizeof(aptiv_engineer) / sizeof(unsigned char));
-  //  stayInDeepSleepFor(30000, WDT_8sec);
-  //  lcd.draw(dimitris_picture, sizeof(dimitris_picture) / sizeof(unsigned char));
-  //  stayInDeepSleepFor(15000, WDT_8sec);
 }

@@ -66,7 +66,7 @@ const unsigned long DEEP_SLEEP_INTERVAL = 2000;
 // Sleep duration while in IDLE_SCREEN mode
 const unsigned long IDLE_SCREEN_INTERVAL = 500;
 // Sleep duration while in PLAYING mode
-const unsigned long PLAYING_INTERVAL = 5000;
+const unsigned long TIP_INTERVAL = 3000;
 const uint8_t TIPS_LENGTH = 50; // The tips' max length in characters
 const unsigned long EIGHTBALL_SLEEP = 1000; // How long to display the 8ball logo in milliseconds
 
@@ -251,7 +251,10 @@ void loop() {
             stayInDeepSleepFor(EIGHTBALL_SLEEP, WDT_1sec);
             lcd.clear();
           }
-          lcd.println("Ask your question and shake to get your answer");
+          lcd.draw(ask_question, sizeof(ask_question) / sizeof(unsigned char));
+          lcd.setCursor(3, 5); // Set the cursor to the start of the progress bar
+          lcd.draw(left_side_bar, sizeof(left_side_bar) / sizeof(unsigned char));
+
           // Initialize the movement related variables
           amountOfMovements = 0;
           turnAccelerometerOn();
@@ -282,7 +285,7 @@ void loop() {
             currentState = PLAYING;
           }
           // Print out visual feedback/affirmation for the user's movement
-          lcd.print("*");
+          lcd.draw(progress_bar, sizeof(progress_bar) / sizeof(unsigned char));
         } else {
           // If there hasn't been any movement, check to see if we are facing down therefore
           // should go to sleep
@@ -310,7 +313,7 @@ void loop() {
         tipsBuffer[TIPS_LENGTH - 1] = '\0';
         lcd.print(tipsBuffer);
 
-        stayInDeepSleepFor(PLAYING_INTERVAL, WDT_1sec);
+        stayInDeepSleepFor(TIP_INTERVAL, WDT_1sec);
         currentState = DEEP_SLEEP;
       }
       break;

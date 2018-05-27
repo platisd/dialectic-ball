@@ -50,6 +50,7 @@ const uint8_t LED_PIN = 0; // PA0
 // Input & output pins directly controlled in this scope
 const uint8_t OUTPUT_PINS[] = {V_ACC_PIN, V_DIS_PIN, LED_PIN};
 const uint8_t INPUT_PINS[] = {X_OUT_PIN, Y_OUT_PIN, Z_OUT_PIN};
+const uint8_t LCD_DATA_PINS[] = {CLK_PIN, DIN_PIN, DC_PIN, CE_PIN, RST_PIN};
 
 // The experimentally determined Z-axis value over which we consider
 // ourselves to be facing up
@@ -155,6 +156,9 @@ void turnScreenOn() {
 
 void turnScreenOff() {
   digitalWrite(V_DIS_PIN, LOW);
+  for (auto pin : LCD_DATA_PINS) {
+    digitalWrite(pin, LOW);
+  }
 }
 
 void turnBacklightOn() {
@@ -262,7 +266,7 @@ void loop() {
           turnAccelerometerOff();
         } else {
           turnScreenOff();
-          stayInDeepSleepFor(DEEP_SLEEP_INTERVAL, WDT_1sec);
+          stayInDeepSleepFor(DEEP_SLEEP_INTERVAL, WDT_2sec);
           justWokeUp = true;
         }
       }

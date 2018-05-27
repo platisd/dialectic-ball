@@ -3,6 +3,7 @@
 #include <avr/power.h>
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <stdint.h>
 #include "bitmaps.h"
 #include "tips.h"

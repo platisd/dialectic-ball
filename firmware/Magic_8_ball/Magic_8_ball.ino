@@ -55,7 +55,7 @@ const uint8_t LCD_DATA_PINS[] = {CLK_PIN, DIN_PIN, DC_PIN, CE_PIN, RST_PIN};
 
 // The experimentally determined Z-axis value over which we consider
 // ourselves to be facing up
-const unsigned int MIN_FACING_UP_THRESHOLD = 500;
+const unsigned int MIN_FACING_UP_THRESHOLD = 470;
 // The minimum acceleration delta (on X,Y,Z axes) to be considered as a movement
 // The smaller the number the easier a "movement" will be registered
 const unsigned int MOVEMENT_ACCELERATION_THRESHOLD = 25; // Experimentally determined
@@ -66,7 +66,7 @@ const unsigned long ACCELEROMETER_BOOTUP_TIME = 15;
 // Sleep duration while in DEEP_SLEEP mode
 const unsigned long DEEP_SLEEP_INTERVAL = 2000;
 // Sleep duration while in IDLE_SCREEN mode
-const unsigned long IDLE_SCREEN_INTERVAL = 500;
+const unsigned long IDLE_SCREEN_INTERVAL = 100;
 // Sleep duration while in PLAYING mode
 const unsigned long TIP_INTERVAL = 3000;
 const uint8_t TIPS_LENGTH = 50; // The tips' max length in characters
@@ -274,7 +274,7 @@ void loop() {
       break;
     case IDLE_SCREEN:
       {
-        stayInDeepSleepFor(IDLE_SCREEN_INTERVAL, WDT_64ms);
+        stayInDeepSleepFor(IDLE_SCREEN_INTERVAL, WDT_32ms);
         // Check for movements
         // Calculate the current delta in acceleration
         turnAccelerometerOn();

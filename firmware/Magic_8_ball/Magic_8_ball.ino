@@ -318,6 +318,12 @@ void loop() {
         tipsBuffer[TIPS_LENGTH - 1] = '\0';
         lcd.print(tipsBuffer);
 
+        // Draw a text-face under the tip to make it more appealing 乁( ◔ ౪◔)「
+        uint8_t randomFace = random(0, NUM_OF_FACES);
+        // Print the face on the last two rows (make sure not to overlay the text)
+        lcd.setCursor(0, 4);
+        lcd.draw(pgm_read_ptr_near(&(FACES[randomFace])), FACE_SIZE);
+
         stayInDeepSleepFor(TIP_INTERVAL, WDT_1sec);
         currentState = DEEP_SLEEP;
       }

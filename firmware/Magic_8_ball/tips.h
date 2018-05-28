@@ -1,6 +1,6 @@
 #include <avr/pgmspace.h>
 
-const uint8_t AMOUNT_OF_TIPS = 23;
+const uint8_t AMOUNT_OF_TIPS = 24;
 
 // Manually insert newlines for the text to wrap around the edges.
 // Each line can fit 17 characters so place a newline character
@@ -28,6 +28,7 @@ const char tip_19[] PROGMEM = "Ask the person\nnext to you for\nhelp!";
 const char tip_20[] PROGMEM = "Can this be\nhardware\nrelated?";
 const char tip_21[] PROGMEM = "Have you tried\ngoogling it?";
 const char tip_22[] PROGMEM = "Could this not\nbe your fault?";
+const char tip_23[] PROGMEM = "Have you tried\nstep by step\nexecution?";
 
 const char* const TIPS[AMOUNT_OF_TIPS] PROGMEM = {
     tip_0,
@@ -52,5 +53,6 @@ const char* const TIPS[AMOUNT_OF_TIPS] PROGMEM = {
     tip_19,
     tip_20,
     tip_21,
-    tip_22
+    tip_22,
+    tip_23
 };

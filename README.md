@@ -38,8 +38,8 @@ From a software perspective the microcontroller mainly remains in deep sleep mod
 * 330Ω resistor
 
 ## Media
-* [Article on platis.solutions]()
-* [Demo video]()
+* [Article on platis.solutions](https://platis.solutions/blog/2018/05/30/debug-your-code-with-dialectic-ball)
+* [Demo video](https://youtu.be/oXdIgaYoSw0)
 
 ## Similar projects
 * [Programmer's Magic 8-ball](https://github.com/FareedQ/Programmer-s-Magic-8-Ball)

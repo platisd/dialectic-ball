@@ -64,13 +64,13 @@ const uint8_t AMOUNT_OF_MOVEMENTS_THRESHOLD = 5;
 // How much to wait before using the accelerometer in milliseconds
 const unsigned long ACCELEROMETER_BOOTUP_TIME = 15;
 // Sleep duration while in DEEP_SLEEP mode
-const unsigned long DEEP_SLEEP_INTERVAL = 2000;
+const unsigned long DEEP_SLEEP_INTERVAL = 1000;
 // Sleep duration while in IDLE_SCREEN mode
 const unsigned long IDLE_SCREEN_INTERVAL = 100;
 // Sleep duration while in PLAYING mode
-const unsigned long TIP_INTERVAL = 3000;
+const unsigned long TIP_INTERVAL = 2500;
 const uint8_t TIPS_LENGTH = 50; // The tips' max length in characters
-const unsigned long EIGHTBALL_SLEEP = 1000; // How long to display the 8ball logo in milliseconds
+const unsigned long EIGHTBALL_SLEEP = 500; // How long to display the 8ball logo in milliseconds
 
 volatile bool watchdogBarked = false;
 
@@ -267,7 +267,7 @@ void loop() {
           turnAccelerometerOff();
         } else {
           turnScreenOff();
-          stayInDeepSleepFor(DEEP_SLEEP_INTERVAL, WDT_2sec);
+          stayInDeepSleepFor(DEEP_SLEEP_INTERVAL, WDT_1sec);
           justWokeUp = true;
         }
       }

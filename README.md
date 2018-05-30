@@ -36,6 +36,7 @@ From a software perspective the microcontroller mainly remains in deep sleep mod
 * Tactile button
 * 10KΩ resistor
 * 330Ω resistor
+* [3D printed case](https://www.tinkercad.com/things/4zkr0X7OHBL-magic8ball)
 
 ## Media
 * [Article on platis.solutions](https://platis.solutions/blog/2018/05/30/debug-your-code-with-dialectic-ball)

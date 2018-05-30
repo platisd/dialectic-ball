@@ -1,6 +1,8 @@
 # Dialectic Ball
 Need to debug your code? Got stuck? Stack Overflow doesn't have the answer? Then ask Dialectic Ball!
 
+![dialectic ball](https://i.imgur.com/etLUOJJ.png)
+
 ## What?
 The Dialectic Ball is a physical, [Magic 8-ball](https://en.wikipedia.org/wiki/Magic_8-Ball) inspired, debugging tool for your daily code struggles! Once you are out of ideas, pick up the Dialectic Ball and explain the problem you are facing with all its details. Remember, the Dialectic Ball is a delicate and highly advanced piece of technology, thus the more information you provide it and the more you outline the problem with all its aspects, the better the chance it will be able to assist you.
 

@@ -21,7 +21,7 @@ The Dialectic Ball is more like a [rubber duck](https://en.wikipedia.org/wiki/Ru
 8. If the answer did not help, shake again when prompted
 
 ## Why?
-Despite our impressive rubber duck collection at the office, sometimes they fall short on feedback and interaction. In such occasions we often utilize a colleague, but this is admittedly not the most productive use of our colleagues. Dialectic Ball intends to fill this gap, i.e. a rubber duck that is able to provide feedback. As a bonus, shaking it is fun!
+Despite our [impressive rubber duck collection](https://i.imgur.com/bP3KeV4.jpg) at the office, sometimes they fall short on feedback and interaction. In such occasions we often utilize a colleague, but this is admittedly not the most productive use of our colleagues. Dialectic Ball intends to fill this gap, i.e. a rubber duck that is able to provide feedback. As a bonus, shaking it is fun!
 
 ## How?
 Dialectic Ball is comprised of an ATtiny84, connected to a GY-61 module (based on the ADXL335 accelerometer) and an LCD screen like the ones used on the old NOKIA phones! Two AAA batteries are powering the gadget up and a [3D printed case](https://www.tinkercad.com/things/4zkr0X7OHBL) encompasses everything, giving it a hemispherical shape. The PCB that routes everything together was manufactured by [JLCPCB](https://jlcpcb.com/), who will make your prototype PCB's for just 2$ and were kind enough to sponsor the `rev. 0` boards.
@@ -41,7 +41,7 @@ From a software perspective the microcontroller mainly remains in deep sleep mod
 * [3D printed case](https://www.tinkercad.com/things/4zkr0X7OHBL-magic8ball)
 
 ## Media
-* [Article on platis.solutions](https://platis.solutions/blog/2018/05/30/debug-your-code-with-dialectic-ball)
+* [Article on platis.solutions](https://platis.solutions/blog/2018/06/02/debug-your-code-with-dialectic-ball/)
 * [Demo video](https://youtu.be/oXdIgaYoSw0)
 
 ## Similar projects

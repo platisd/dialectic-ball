@@ -5,8 +5,8 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stdint.h>
-#include "bitmaps.h"
-#include "tips.h"
+#include "bitmaps.hpp"
+#include "tips.hpp"
 
 enum WatchDogTimeout {
   WDT_16ms = 0,

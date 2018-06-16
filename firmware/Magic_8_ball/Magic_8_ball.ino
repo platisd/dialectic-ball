@@ -253,7 +253,7 @@ void loop() {
           if (justWokeUp) {
             justWokeUp = false;
             lcd.draw(eightball, sizeof(eightball) / sizeof(unsigned char));
-            stayInDeepSleepFor(EIGHTBALL_SLEEP, WDT_1sec);
+            stayInDeepSleepFor(EIGHTBALL_SLEEP, WDT_500ms);
             lcd.clear();
           }
           lcd.draw(ask_question, sizeof(ask_question) / sizeof(unsigned char));

@@ -248,13 +248,14 @@ void loop() {
           turnScreenOn();
           lcd.begin();
           lcd.setContrast(60);
-          lcd.clear(); // Clear the screen
           // If we just woke up, display the 8-ball logo to the user
           if (justWokeUp) {
             justWokeUp = false;
             lcd.draw(eightball, sizeof(eightball) / sizeof(unsigned char));
             stayInDeepSleepFor(EIGHTBALL_SLEEP, WDT_500ms);
             lcd.clear();
+          } else {
+            lcd.clear(); // Clear the screen for the upcomming prompt
           }
           lcd.draw(ask_question, sizeof(ask_question) / sizeof(unsigned char));
           lcd.setCursor(3, 5); // Set the cursor to the start of the progress bar
